@@ -23,4 +23,4 @@ if __name__ == '__main__':
     tem_model = TEM_Model("TEM", "../bottom-up/TEM/TEM_ch4_wetland_soilsink_1950_2020.nc4")
     # print(tem_model.dataset)
     # exit()
-    print(tem_model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5")))
+    print(tem_model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5"), ['emission', 'consumption']))

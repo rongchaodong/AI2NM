@@ -7,6 +7,10 @@ from typing import Union, Tuple, Optional
 # Define the unified target resolution
 TARGET_RESOLUTION = 0.5
 
+pd.set_option('display.max_rows', None) 
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None) 
+
 class CH4_Model:
     """
     A generic base class for handling methane data models from various sources.
@@ -98,7 +102,8 @@ class CH4_Model:
     def query(self, 
               lat_range: Tuple[float, float], 
               lon_range: Tuple[float, float], 
-              time_range: Optional[Tuple[str, str]] = None) -> Optional[pd.DataFrame]:
+              time_range: Optional[Tuple[str, str]] = None, 
+              target: Optional[list] = None) -> Optional[pd.DataFrame]:
         """
         Queries data within a given latitude, longitude, and optional time range.
 
@@ -159,8 +164,12 @@ class CH4_Model:
             # drop=True removes all data points that don't meet the condition
             time_selection = ds.where(time_mask, drop=True)
             # print("try:", time_selection)
-            # df = time_selection.to_dataframe().dropna(how='all').reset_index()
-            df = time_selection.to_dataframe().reset_index()
+            df = time_selection.to_dataframe()
+            if target and all(item in df.columns for item in target):
+                # Drop NaN rows
+                df = df.dropna(subset=target).reset_index()
+            else: # drop all NaN
+                df = df.dropna(how='all').reset_index()
 
             if df.empty:
                 print(df)

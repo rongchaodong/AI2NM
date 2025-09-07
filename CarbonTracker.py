@@ -1,7 +1,7 @@
 
 import xarray as xr
 from CH4_Model import CH4_Model
-# from TEM_Model import TEM_Model
+from TEM_Model import TEM_Model
 
 class CarbonTracker_Model(CH4_Model):
     def _load_data(self):
@@ -31,4 +31,4 @@ class CarbonTracker_Model(CH4_Model):
 model = CarbonTracker_Model("CarbonTracker", "../top-down/CT-CH4_v2025_posterior_emission_1x1_category.nc", (1.0, 1.0))
 # print(model.dataset)
 print("---" * 10)
-print(model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5")))
+print(model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5"), ['emission']))
