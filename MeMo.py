@@ -15,12 +15,16 @@ class MeMo_Model(CH4_Model):
             months = (zero_based_idx % 12) + 1
             ds = ds.assign_coords(year=('Time', years), month=('Time', months))
             # ds = ds.reset_coords('Time', drop=True)
+            ds = ds.set_index(Time=['year', 'month'])
+            ds = ds.unstack('Time')
 
             # Now rename the variables to our standard names
             rename_vars = {
                 'CH4uptake': 'consumption'
             }
-            self.dataset = ds.rename_vars(rename_vars)
+            ds = ds.rename_vars(rename_vars)
+            # remain all data, convert NaN into -9999
+            self.dataset = ds.fillna(-9999)
         except FileNotFoundError:
             print(f"WARNING: File not found at {self.path}")
         except Exception as e:
@@ -28,6 +32,6 @@ class MeMo_Model(CH4_Model):
 
 
 model = MeMo_Model("MeMo", "../bottom-up/MeMo_1990-2009_monthly_corrected.nc", (1.0, 1.0))
-# print(model.dataset)
+print(model.dataset)
 # exit()
 print(model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5"), ['consumption']))

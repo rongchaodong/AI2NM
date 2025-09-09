@@ -88,8 +88,8 @@ class CH4_Model:
         Resamples the dataset to the target resolution using the 'nearest' method.
         This will fill blocks of the new grid with the value of the nearest point in the old grid.
         """
-        new_lat = np.arange(-90 + TARGET_RESOLUTION, 90, TARGET_RESOLUTION)
-        new_lon = np.arange(-180, 179.5, TARGET_RESOLUTION)
+        new_lat = np.arange(-90 + TARGET_RESOLUTION, 90 + TARGET_RESOLUTION, TARGET_RESOLUTION)
+        new_lon = np.arange(-180, 180, TARGET_RESOLUTION)
         
         # Use reindex with 'nearest' method for block-filling instead of interpolation
         self.dataset = self.dataset.reindex(
@@ -168,7 +168,8 @@ class CH4_Model:
             if target and all(item in df.columns for item in target):
                 # Drop NaN rows
                 df = df.dropna(subset=target).reset_index()
-            else: # drop all NaN
+            # default: no droping, remain all data. here, the dropna is used to drop the contents outside the time range
+            else: # replace NaN
                 df = df.dropna(how='all').reset_index()
 
             if df.empty:
@@ -186,6 +187,11 @@ class CH4_Model:
     def __repr__(self):
         """Returns a string representation of the object."""
         if self.dataset is not None:
-            dims = ", ".join([f"{k}: {len(v)}" for k, v in self.dataset.dims.items()])
+            # Handle both old and new xarray versions
+            try:
+                dims = ", ".join([f"{k}: {v}" for k, v in self.dataset.dims.items()])
+            except (TypeError, AttributeError):
+                # For newer xarray versions, use sizes
+                dims = ", ".join([f"{k}: {v}" for k, v in self.dataset.sizes.items()])
             return f"<CH4_Model name='{self.name}', resolution={self.original_resolution}°, data_dims=({dims})>"
         return f"<CH4_Model name='{self.name}', resolution={self.original_resolution}° (Data not loaded)>"

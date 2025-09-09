@@ -13,7 +13,10 @@ class TEM_Model(CH4_Model):
                 'ch4_emission': 'emission',
                 'ch4_oxidation': 'consumption'
             }
-            self.dataset = ds.rename_vars(rename_vars)
+            ds = ds.rename_vars(rename_vars)
+            ds = ds.transpose('latitude', 'longitude', 'year', 'month')
+            # remain all data, convert NaN into -9999
+            self.dataset = ds.fillna(-9999)
         except FileNotFoundError:
             print(f"WARNING: File not found at {self.path}")
         except Exception as e:
@@ -23,4 +26,4 @@ if __name__ == '__main__':
     tem_model = TEM_Model("TEM", "../bottom-up/TEM/TEM_ch4_wetland_soilsink_1950_2020.nc4")
     # print(tem_model.dataset)
     # exit()
-    print(tem_model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5"), ['emission', 'consumption']))
+    print(tem_model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5")))
