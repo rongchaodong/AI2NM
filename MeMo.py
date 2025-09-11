@@ -30,8 +30,8 @@ class MeMo_Model(CH4_Model):
         except Exception as e:
             print(f"ERROR: Failed to load TEM model from {self.path}: {e}")
 
-
-model = MeMo_Model("MeMo", "../bottom-up/MeMo_1990-2009_monthly_corrected.nc", (1.0, 1.0))
-print(model.dataset)
-# exit()
-print(model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5"), ['consumption']))
+if __name__ == '__main__':
+    model = MeMo_Model("MeMo", "../bottom-up/MeMo_1990-2009_monthly_corrected.nc", (1.0, 1.0))
+    print(model.dataset)
+    # exit()
+    print(model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5"), ['consumption']))

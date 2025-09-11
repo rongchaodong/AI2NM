@@ -112,8 +112,8 @@ class CarbonTracker_Model(CH4_Model):
             else: # replace NaN
                 df = df.dropna(how='all').reset_index()
             
-            print(df)
-            exit()
+            # print(df)
+            # exit()
             if df.empty:
                 print(df)
                 print(f"Locations from lan {lat_range} to lon {lon_range} within time range {time_range} no data exist!")
@@ -132,9 +132,9 @@ class CarbonTracker_Model(CH4_Model):
         consumption_ds = consumption_ds[['lat', 'lon', 'year', 'month', 'consumption']]
         self.consumption_data = consumption_ds
 
-
-model = CarbonTracker_Model("CarbonTracker", "../top-down/CT-CH4_v2025_posterior_emission_1x1_category.nc", (1.0, 1.0))
-# print(model.dataset)
-# exit()
-# print("---" * 10)
-print(model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5")))
+if __name__ == '__main__':
+    model = CarbonTracker_Model("CarbonTracker", "../top-down/CT-CH4_v2025_posterior_emission_1x1_category.nc", (1.0, 1.0))
+    # print(model.dataset)
+    # exit()
+    # print("---" * 10)
+    print(model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5")))
