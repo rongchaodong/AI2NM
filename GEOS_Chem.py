@@ -112,7 +112,7 @@ class GEOS_Chem_Model(CH4_Model):
             # drop=True removes all data points that don't meet the condition
             time_selection = ds.where(time_mask, drop=True)
             time_consumption = spatial_consumption.where(time_mask, drop=True)
-            time_selection = time_selection.merge(time_consumption)
+            time_selection = time_selection.merge(time_consumption, join='outer')
             # print("try:", time_selection)
             df = time_selection.to_dataframe()
             if target and all(item in df.columns for item in target):
@@ -121,6 +121,8 @@ class GEOS_Chem_Model(CH4_Model):
             # default: no droping, remain all data. here, the dropna is used to drop the contents outside the time range
             else: # replace NaN
                 df = df.dropna(how='all').reset_index()
+            
+            df = df.fillna(-9999)
             
             # print(df)
             # exit()
