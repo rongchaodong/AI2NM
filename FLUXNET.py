@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from CH4_Model import TARGET_RESOLUTION
 from pathlib import Path
+from typing import Optional, Tuple, List
 
 class FLUXNET_Model(CH4_Model):
     
@@ -126,6 +127,86 @@ class FLUXNET_Model(CH4_Model):
         else:
             print("No data found for grid conversion")
             self.dataset = None
+
+    
+    def query_ori(self,
+              lat_range: Tuple[float, float],
+              lon_range: Tuple[float, float],
+              time_range: Optional[Tuple[str, str]] = None,
+              target: Optional[List[str]] = None) -> Optional[pd.DataFrame]:
+        if self.processed_data is None or self.processed_data.empty:
+            print("Error: cannot query, Chamber combined data is not loaded!")
+            return None
+
+        min_lat, max_lat = lat_range
+        if not -90 <= min_lat <= 90 or not -90 <= max_lat <= 90 or min_lat >= max_lat:
+            print(f"ERROR: Invalid latitude range. Must be within [-90, 90] and min_lat < max_lat. Got: {lat_range}")
+            return None
+
+        min_lon, max_lon = lon_range
+        if not -180 <= min_lon <= 180 or not -180 <= max_lon <= 180 or min_lon >= max_lon:
+            print(f"ERROR: Invalid longitude range. Must be within [-180, 180] and min_lon < max_lon. Got: {lon_range}")
+            return None
+
+        if not time_range:
+            print('ERROR: Must specify a time range to query, for example: ("2000-01", "2000-06") or ("2000-01-01", "2000-06-30").')
+            return None
+
+        try:
+            df = self.processed_data.copy()
+
+            # Spatial filter
+            df = df[(df['lat'] >= lat_range[0]) & (df['lat'] <= lat_range[1]) &
+                    (df['lon'] >= lon_range[0]) & (df['lon'] <= lon_range[1])]
+
+            if df.empty:
+                print(f"No chamber data within spatial range lat {lat_range}, lon {lon_range}")
+                return None
+
+            # Determine if day is available
+            has_day = 'day' in df.columns and df['day'].notna().any()
+            has_month = 'month' in df.columns and df['month'].notna().any()
+
+            # Build a datetime for filtering; if day missing, use day=15 for mid-month
+            if 'year' not in df.columns:
+                print("ERROR: year column not found in chamber data after renaming.")
+                return None
+
+            day_series = df['day'] if has_day else 15
+            month_series = df['month'] if has_month else 6
+            dt = pd.to_datetime({
+                'year': df['year'].astype('Int64'),
+                'month': pd.Series(month_series, index=df.index).astype('Int64'),
+                'day': pd.Series(day_series, index=df.index).astype('Int64')
+            }, errors='coerce')
+
+            start_date = pd.to_datetime(time_range[0])
+            end_date = pd.to_datetime(time_range[1])
+            if start_date > end_date:
+                print(f"ERROR: Invalid time range. Start date must be before or equal to end date. Got: {time_range}")
+                return None
+
+            df = df[dt.between(start_date, end_date, inclusive='both')]
+
+            if df.empty:
+                print(f"No chamber data within time range {time_range}")
+                return None
+
+            # Sort output by lat lon year month day (if columns exist)
+            sort_cols = [c for c in ['lat', 'lon', 'year', 'month', 'day'] if c in df.columns]
+            df = df.sort_values(by=sort_cols).reset_index(drop=True)
+
+            # If target variables specified, keep them plus the sort keys; else keep all
+            if target:
+                keep_cols = list(dict.fromkeys(sort_cols + target))
+                existing_keep_cols = [c for c in keep_cols if c in df.columns]
+                if existing_keep_cols:
+                    df = df[existing_keep_cols]
+
+            return df
+        except Exception as e:
+            print(f"ERROR: An error occurred while querying chamber combined data: {e}")
+            return None
 
     def get_site_info(self, site_id: str = None):
         if self.site_info is None:
@@ -260,8 +341,7 @@ if __name__ == '__main__':
         result_daily = fluxnet_model.query(
             lat_range=(40.0, 50.0), 
             lon_range=(-10.0, 10.0), 
-            time_range=("2010/06/01", "2010/06/30"),
-            target=['emission']
+            time_range=("2010/06/01", "2010/06/30")
         )
         
         if result_daily is not None and not result_daily.empty:
@@ -269,11 +349,10 @@ if __name__ == '__main__':
         else:
             print("No daily data found for the query")
         
-        result_monthly = fluxnet_model.query(
+        result_monthly = fluxnet_model.query_ori(
             lat_range=(40.0, 50.0), 
             lon_range=(-10.0, 10.0), 
-            time_range=("2009/12", "2010/02"),
-            target=['emission']
+            time_range=("2009/12", "2010/02")
         )
         
         if result_monthly is not None and not result_monthly.empty:
