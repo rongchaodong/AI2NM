@@ -135,7 +135,7 @@ class FLUXNET_Model(CH4_Model):
               time_range: Optional[Tuple[str, str]] = None,
               target: Optional[List[str]] = None) -> Optional[pd.DataFrame]:
         if self.processed_data is None or self.processed_data.empty:
-            print("Error: cannot query, Chamber combined data is not loaded!")
+            print("Error: cannot query, fluxnet data is not loaded!")
             return None
 
         min_lat, max_lat = lat_range
@@ -160,7 +160,7 @@ class FLUXNET_Model(CH4_Model):
                     (df['lon'] >= lon_range[0]) & (df['lon'] <= lon_range[1])]
 
             if df.empty:
-                print(f"No chamber data within spatial range lat {lat_range}, lon {lon_range}")
+                print(f"No fluxnet data within spatial range lat {lat_range}, lon {lon_range}")
                 return None
 
             # Determine if day is available
@@ -205,7 +205,7 @@ class FLUXNET_Model(CH4_Model):
 
             return df
         except Exception as e:
-            print(f"ERROR: An error occurred while querying chamber combined data: {e}")
+            print(f"ERROR: An error occurred while querying fluxnet data: {e}")
             return None
 
     def get_site_info(self, site_id: str = None):
