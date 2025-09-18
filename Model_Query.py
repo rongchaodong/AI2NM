@@ -84,7 +84,8 @@ class ModelQueryManager:
                     time_range: Tuple[str, str],
                     model_names: Optional[List[str]] = None,
                     target_variables: Optional[List[str]] = None,
-                    observable: bool = True) -> Dict[str, pd.DataFrame]:
+                    all_grid: bool = False,
+                    output_path: str = "") -> Dict[str, pd.DataFrame]:
         """
         Query multiple models with the same spatial and temporal constraints.
         
@@ -128,7 +129,7 @@ class ModelQueryManager:
             
             try:
                 # Query the model
-                if observable and (model_name == 'FLUXNET' or model_name == 'Chamber_Combined'):
+                if not all_grid and (model_name == 'FLUXNET' or model_name == 'Chamber_Combined'):
                     result = self.models[model_name].query_ori(
                     lat_range=lat_range,
                     lon_range=lon_range,
@@ -189,6 +190,8 @@ def main():
         default=None,
         help="Optional: a list of specific models to query (e.g., TEM MeMo LPJ_EOSIM). If not provided, all models are queried."
     )
+    parser.add_argument("--all_grid", action="store_true", help="Optional: output gridded data for FLUXNET and Chamber data.")
+    parser.add_argument("--output_path", type=str, default="", help="Output the queried results into a netcdf file with specified output_path.")
     args = parser.parse_args()
 
     manager = ModelQueryManager()
@@ -213,7 +216,9 @@ def main():
         lat_range=tuple(args.lat_range),
         lon_range=tuple(args.lon_range),
         time_range=tuple(args.time_range),
-        model_names=args.models
+        model_names=args.models,
+        all_grid = args.all_grid,
+        output_path = args.output_path
     )
     
 if __name__ == '__main__':

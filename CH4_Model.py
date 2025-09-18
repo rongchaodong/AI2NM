@@ -182,6 +182,29 @@ class CH4_Model:
         except Exception as e:
             print(f"ERROR: An error occurred while querying model '{self.name}': {e}")
             return None
+        
+    
+    def _to_nc_file(self, source: pd.DataFrame, output_path: str):
+        """Transform dataframe file into nc file.
+        Args:
+            source (pd.DataFrame): dataframe source.
+            output_path (str): The path to the nc file.
+
+        Returns:
+            None."""
+        ds = source.to_xarray()
+        if isinstance(output_path, Path):
+            path = self.path
+        else:
+            path = Path(output_path)
+
+        ds.to_netcdf(output_path)
+        ds_read = xr.open_dataset(output_path)
+        if ds_read:
+            print(f'Source file is exported to {output_path} successfully!')
+        else:
+            print("Export to nc file error!")
+            exit(-1)
 
 
     def __repr__(self):

@@ -124,6 +124,11 @@ class FLUXNET_Model(CH4_Model):
             self.dataset = gridded_df.to_xarray()
             # print(self.dataset)
             # exit()
+            self.dataset = self.dataset.reindex(
+                lat=target_lats, 
+                lon=target_lons, 
+                fill_value=-9999
+            )
         else:
             print("No data found for grid conversion")
             self.dataset = None
