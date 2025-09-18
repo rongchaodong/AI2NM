@@ -2,7 +2,7 @@ import xarray as xr
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from typing import Union, Tuple, Optional
+from typing import Union, Tuple, Optional, Dict
 
 # Define the unified target resolution
 TARGET_RESOLUTION = 0.5
@@ -202,9 +202,139 @@ class CH4_Model:
         ds_read = xr.open_dataset(output_path)
         if ds_read:
             print(f'Source file is exported to {output_path} successfully!')
+            ds_read.close()
         else:
             print("Export to nc file error!")
             exit(-1)
+
+    @staticmethod
+    def merge_models_to_nc(results: Dict[str, pd.DataFrame], output_path: str):
+        """
+        Merge multiple model query results into a single NetCDF file.
+        
+        Args:
+            results (Dict[str, pd.DataFrame]): Dictionary mapping model names to their query results
+            output_path (str): Path for the output NetCDF file
+            
+        Returns:
+            None
+        """
+        if not results or all(df is None for df in results.values()):
+            print("No valid data to export")
+            return
+            
+        # Filter out None results
+        valid_results = {name: df for name, df in results.items() if df is not None and not df.empty}
+        
+        if not valid_results:
+            print("No valid data to export")
+            return
+            
+        print(f"\n=== Converting {len(valid_results)} models to {output_path} ===")
+        
+        merged_data = {}
+        model_info = {}
+        
+        for model_name, df in valid_results.items():
+            print(f"Processing {model_name} with {len(df)} records")
+            
+            # Add model name as a column
+            df_with_model = df.copy()
+            df_with_model['model_name'] = model_name
+            
+            coord_cols = ['lat', 'lon', 'year', 'month', 'day', 'model_name']
+            data_cols = [col for col in df_with_model.columns if col not in coord_cols]
+            
+            # Rename data columns with model prefix
+            rename_dict = {col: f"{model_name}_{col}" for col in data_cols}
+            df_with_model = df_with_model.rename(columns=rename_dict)
+            
+            # Store model information
+            model_info[model_name] = {
+                'record_count': len(df_with_model),
+                'variables': list(rename_dict.values()),
+                'original_variables': data_cols,
+                'time_range': (df['year'].min(), df['year'].max()) if 'year' in df.columns else None,
+                'spatial_range': {
+                    'lat': (df['lat'].min(), df['lat'].max()) if 'lat' in df.columns else None,
+                    'lon': (df['lon'].min(), df['lon'].max()) if 'lon' in df.columns else None
+                }
+            }
+            
+            merged_data[model_name] = df_with_model
+        
+        # Combine all dataframes
+        all_dfs = list(merged_data.values())
+        combined_df = pd.concat(all_dfs, ignore_index=True, sort=False)
+        
+        # Fill NaN values with -9999 for consistency
+        combined_df = combined_df.fillna(-9999)
+        
+        try:
+            # Handle mixed data types by converting to string where necessary
+            for col in combined_df.columns:
+                if combined_df[col].dtype == 'object':
+                    # Check if it's a mixed type column
+                    if combined_df[col].apply(lambda x: isinstance(x, (int, float))).any() and \
+                       combined_df[col].apply(lambda x: isinstance(x, str)).any():
+                        # Convert all to string to avoid mixed type issues
+                        combined_df[col] = combined_df[col].astype(str)
+            
+            # Set index for proper xarray conversion
+            index_cols = ['lat', 'lon', 'year', 'month', 'day', 'model_name']
+            existing_index_cols = [col for col in index_cols if col in combined_df.columns]
+            
+            if existing_index_cols:
+                combined_df_indexed = combined_df.set_index(existing_index_cols)
+                ds = combined_df_indexed.to_xarray()
+            else:
+                # If no index columns or other errors, create a simple unique index
+                combined_df_indexed = combined_df.reset_index(drop=True)
+                combined_df_indexed['unique_id'] = range(len(combined_df_indexed))
+                combined_df_indexed = combined_df_indexed.set_index('unique_id')
+                ds = combined_df_indexed.to_xarray()
+            
+            # Add global attributes
+            ds.attrs['title'] = 'CH4 Model Data Query Results'
+            ds.attrs['description'] = f'Combined results from {len(valid_results)} models'
+            ds.attrs['creation_date'] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+            ds.attrs['models_included'] = ', '.join(valid_results.keys())
+            
+            # Add model-specific attributes
+            for model_name, info in model_info.items():
+                ds.attrs[f'model_{model_name}_records'] = info['record_count']
+                ds.attrs[f'model_{model_name}_variables'] = ', '.join(info['original_variables'])
+                if info['time_range']:
+                    ds.attrs[f'model_{model_name}_time_range'] = f"{info['time_range'][0]}-{info['time_range'][1]}"
+                if info['spatial_range']['lat']:
+                    ds.attrs[f'model_{model_name}_lat_range'] = f"{info['spatial_range']['lat'][0]:.2f} to {info['spatial_range']['lat'][1]:.2f}"
+                if info['spatial_range']['lon']:
+                    ds.attrs[f'model_{model_name}_lon_range'] = f"{info['spatial_range']['lon'][0]:.2f} to {info['spatial_range']['lon'][1]:.2f}"
+            
+            # Add variable attributes
+            for var_name in ds.data_vars:
+                if var_name.startswith(tuple(valid_results.keys())):
+                    model_name = var_name.split('_')[0]
+                    original_var = '_'.join(var_name.split('_')[1:])
+                    ds[var_name].attrs['model'] = model_name
+                    ds[var_name].attrs['original_variable'] = original_var
+                    ds[var_name].attrs['description'] = f'{original_var} from {model_name} model'
+            
+            ds.to_netcdf(output_path)
+            
+            # Verification
+            try:
+                test_ds = xr.open_dataset(output_path)
+                print(f"Successfully exported data to {output_path}")
+                print(f"  - Total records: {len(combined_df)}")
+                print(f"  - Models included: {', '.join(valid_results.keys())}")
+                test_ds.close()
+            except Exception as e:
+                print(f"Error verifying output file: {e}")
+                
+        except Exception as e:
+            print(f" Error creating NetCDF file: {e}")
+            return
 
 
     def __repr__(self):

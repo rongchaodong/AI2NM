@@ -9,6 +9,7 @@ from LPJ_EOSIM import PLJ_EOSIM_Model
 from CarbonTracker import CarbonTracker_Model
 from FLUXNET import FLUXNET_Model
 from Chamber_combined import Chamber_Combined_Model
+from CH4_Model import CH4_Model
 
 class ModelQueryManager:
     
@@ -153,6 +154,10 @@ class ModelQueryManager:
             except Exception as e:
                 print(f"  Query failed: {e}")
                 results[model_name] = None
+        
+        # Export to NetCDF if output_path is specified
+        if output_path:
+            CH4_Model.merge_models_to_nc(results, output_path)
         
         return results
     
