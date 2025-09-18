@@ -61,17 +61,18 @@ class Chamber_Combined_Model(CH4_Model):
             self.df = None
             self.dataset = None
 
-    def _convert_to_grid(self):
-        if self.df is None or len(self.df) == 0:
+    def _convert_to_grid(self, df, lat_range, lon_range):
+        if df is None or len(df) == 0:
             print("No data to convert to grid")
             return
-        
-        target_lats = np.arange(-90 + TARGET_RESOLUTION, 90 + TARGET_RESOLUTION, TARGET_RESOLUTION)
-        target_lons = np.arange(-180, 180, TARGET_RESOLUTION)
+        min_lat, max_lat = lat_range
+        min_lon, max_lon = lon_range
+        target_lats = np.arange(min_lat, max_lat + TARGET_RESOLUTION, TARGET_RESOLUTION)
+        target_lons = np.arange(min_lon, max_lon + TARGET_RESOLUTION, TARGET_RESOLUTION)
         
         gridded_data = []
         
-        for idx, row in self.df.iterrows():
+        for idx, row in df.iterrows():
             
             # Find the nearest grid point
             lat_idx = np.argmin(np.abs(target_lats - row['lat']))
@@ -110,12 +111,18 @@ class Chamber_Combined_Model(CH4_Model):
             gridded_df = gridded_df[~gridded_df.index.duplicated(keep='first')]
 
             # Convert to xarray Dataset
-            self.dataset = gridded_df.to_xarray()
-            # print(self.dataset)
+            dataset = gridded_df.to_xarray()
+            dataset = dataset.reindex(
+                lat=target_lats, 
+                lon=target_lons, 
+                fill_value=-9999
+            )
+            # print(dataset)
             # exit()
         else:
             print("No data found for grid conversion")
-            self.dataset = None
+            dataset = None
+        return dataset
     
     def query_ori(self,
               lat_range: Tuple[float, float],
@@ -213,9 +220,12 @@ class Chamber_Combined_Model(CH4_Model):
         Returns:
             pandas.DataFrame: Query results
         """
-        if self.dataset is None:
-            print("Error: cannot query, Dataset", self.name, "is not loaded!")
-            return None
+        df = self.query_ori(lat_range, lon_range, time_range, target)
+        # print(df)
+        # exit()
+        # if df is None:
+        #     print("Error: cannot query, Dataset", self.name, "is not loaded!")
+        #     return None
 
         min_lat, max_lat = lat_range
         if not -90 <= min_lat <= 90 or not -90 <= max_lat <= 90 or min_lat >= max_lat:
@@ -227,15 +237,25 @@ class Chamber_Combined_Model(CH4_Model):
             print(f"ERROR: Invalid longitude range. Must be within [-180, 180] and min_lon < max_lon. Got: {lon_range}")
             return None
 
+        target_lats = np.arange(-90 + TARGET_RESOLUTION, 90 + TARGET_RESOLUTION, TARGET_RESOLUTION)
+        target_lons = np.arange(-180, 180, TARGET_RESOLUTION)
+        min_lat_idx = np.argmin(np.abs(target_lats - min_lat))
+        max_lat_idx = np.argmin(np.abs(target_lats - max_lat))
+        min_lon_idx = np.argmin(np.abs(target_lons - min_lon))
+        max_lon_idx = np.argmin(np.abs(target_lons - max_lon))
+        nearest_lat_range = target_lats[min_lat_idx], target_lats[max_lat_idx]
+        nearest_lon_range = target_lons[min_lon_idx], target_lons[max_lon_idx]
+        dataset = self._convert_to_grid(df, nearest_lat_range, nearest_lon_range)
+
         try:
             spatial_mask = (
-                (self.dataset.lat >= lat_range[0]) & 
-                (self.dataset.lat <= lat_range[1]) &
-                (self.dataset.lon >= lon_range[0]) & 
-                (self.dataset.lon <= lon_range[1])
+                (dataset.lat >= lat_range[0]) & 
+                (dataset.lat <= lat_range[1]) &
+                (dataset.lon >= lon_range[0]) & 
+                (dataset.lon <= lon_range[1])
             )
             
-            spatial_selection = self.dataset.where(spatial_mask, drop=True)
+            spatial_selection = dataset.where(spatial_mask, drop=True)
             
             if not time_range:
                 print("ERROR: Must specify a time range to query, for example: (\"2000-01\", \"2000-06\").")
@@ -310,8 +330,8 @@ if __name__ == '__main__':
     )
 
     result = model.query(
-        lat_range=(30.0, 40.0),
-        lon_range=(-90.0, -85.0),
+        lat_range=(30.0, 31.0),
+        lon_range=(-90.0, -88.0),
         time_range=("2012-01-01", "2020-12-31")
     )
 
