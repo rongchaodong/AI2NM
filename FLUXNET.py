@@ -31,7 +31,7 @@ class FLUXNET_Model(CH4_Model):
             self._process_and_merge_data()
             
             # harmonize with simulated model data format, convert to gridded format
-            self._convert_to_grid()
+            # self._convert_to_grid()
             
         except FileNotFoundError as e:
             print(f"WARNING: A required file was not found: {e}")
@@ -75,17 +75,18 @@ class FLUXNET_Model(CH4_Model):
         # print(self.processed_data.head(10))
         # exit()
 
-    def _convert_to_grid(self):
-        if self.processed_data is None or len(self.processed_data) == 0:
+    def _convert_to_grid(self, df, lat_range, lon_range):
+        if df is None or len(df) == 0:
             print("No data to convert to grid")
             return
-        
-        target_lats = np.arange(-90 + TARGET_RESOLUTION, 90 + TARGET_RESOLUTION, TARGET_RESOLUTION)
-        target_lons = np.arange(-180, 180, TARGET_RESOLUTION)
+        min_lat, max_lat = lat_range
+        min_lon, max_lon = lon_range
+        target_lats = np.arange(min_lat, max_lat + TARGET_RESOLUTION, TARGET_RESOLUTION)
+        target_lons = np.arange(min_lon, max_lon + TARGET_RESOLUTION, TARGET_RESOLUTION)
         
         gridded_data = []
         
-        for idx, row in self.processed_data.iterrows():
+        for idx, row in df.iterrows():
             
             # Find the nearest grid point
             lat_idx = np.argmin(np.abs(target_lats - row['lat']))
@@ -250,9 +251,10 @@ class FLUXNET_Model(CH4_Model):
         Returns:
             pandas.DataFrame: Query results
         """
-        if self.dataset is None:
-            print("Error: cannot query, Dataset", self.name, "is not loaded!")
-            return None
+        df = self.query_ori(lat_range, lon_range, time_range, target)
+        # if self.dataset is None:
+        #     print("Error: cannot query, Dataset", self.name, "is not loaded!")
+        #     return None
 
         min_lat, max_lat = lat_range
         if not -90 <= min_lat <= 90 or not -90 <= max_lat <= 90 or min_lat >= max_lat:
@@ -263,16 +265,26 @@ class FLUXNET_Model(CH4_Model):
         if not -180 <= min_lon <= 180 or not -180 <= max_lon <= 180 or min_lon >= max_lon:
             print(f"ERROR: Invalid longitude range. Must be within [-180, 180] and min_lon < max_lon. Got: {lon_range}")
             return None
+        
+        target_lats = np.arange(-90 + TARGET_RESOLUTION, 90 + TARGET_RESOLUTION, TARGET_RESOLUTION)
+        target_lons = np.arange(-180, 180, TARGET_RESOLUTION)
+        min_lat_idx = np.argmin(np.abs(target_lats - min_lat))
+        max_lat_idx = np.argmin(np.abs(target_lats - max_lat))
+        min_lon_idx = np.argmin(np.abs(target_lons - min_lon))
+        max_lon_idx = np.argmin(np.abs(target_lons - max_lon))
+        nearest_lat_range = target_lats[min_lat_idx], target_lats[max_lat_idx]
+        nearest_lon_range = target_lons[min_lon_idx], target_lons[max_lon_idx]
+        dataset = self._convert_to_grid(df, nearest_lat_range, nearest_lon_range)
 
         try:
             spatial_mask = (
-                (self.dataset.lat >= lat_range[0]) & 
-                (self.dataset.lat <= lat_range[1]) &
-                (self.dataset.lon >= lon_range[0]) & 
-                (self.dataset.lon <= lon_range[1])
+                (dataset.lat >= lat_range[0]) & 
+                (dataset.lat <= lat_range[1]) &
+                (dataset.lon >= lon_range[0]) & 
+                (dataset.lon <= lon_range[1])
             )
             
-            spatial_selection = self.dataset.where(spatial_mask, drop=True)
+            spatial_selection = dataset.where(spatial_mask, drop=True)
             
             if not time_range:
                 print("ERROR: Must specify a time range to query, for example: (\"2000-01\", \"2000-06\").")
