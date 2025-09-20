@@ -10,6 +10,7 @@ from CarbonTracker import CarbonTracker_Model
 from FLUXNET import FLUXNET_Model
 from Chamber_combined import Chamber_Combined_Model
 from CH4_Model import CH4_Model
+from TEM_driver import TEM_Driver
 
 class ModelQueryManager:
     
@@ -48,6 +49,11 @@ class ModelQueryManager:
             'FLUXNET': {
                 'class': FLUXNET_Model,
                 'path': '../FLUXNET-CH4/',
+                'resolution': 0.5,
+            },
+            'TEM_Driver': {
+                'class': TEM_Driver,
+                'path': '../TEM_monthly_driver/',
                 'resolution': 0.5,
             }
         }
