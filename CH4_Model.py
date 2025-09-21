@@ -222,7 +222,10 @@ class CH4_Model:
         if not results or all(df is None for df in results.values()):
             print("No valid data to export")
             return
-            
+        
+        if len(results) == 1:
+            CH4_Model._to_nc_file(CH4_Model, list(results.values())[0], output_path)
+            return
         # Filter out None results
         valid_results = {name: df for name, df in results.items() if df is not None and not df.empty}
         
