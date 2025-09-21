@@ -290,8 +290,14 @@ class CH4_Model:
             if existing_index_cols:
                 combined_df_indexed = combined_df.set_index(existing_index_cols)
                 ds = combined_df_indexed.to_xarray()
+                original_order = ['lat', 'lon', 'year', 'month', 'day', 'model_name']
+                exist_order = [col for col in original_order if col in ds.dims]
+                ds = ds.transpose(*exist_order, ...)
+                # print(ds)
+                # exit()
             else:
                 # If no index columns or other errors, create a simple unique index
+                print("Warning: No index columns found, creating a simple unique index.")
                 combined_df_indexed = combined_df.reset_index(drop=True)
                 combined_df_indexed['unique_id'] = range(len(combined_df_indexed))
                 combined_df_indexed = combined_df_indexed.set_index('unique_id')
