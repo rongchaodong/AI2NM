@@ -199,10 +199,10 @@ def main():
         nargs='*',
         type=str,
         default=None,
-        help="Optional: a list of specific models to query (e.g., TEM MeMo LPJ_EOSIM). If not provided, all models are queried."
+        help="Optional: a list of specific models to query (e.g., TEM MeMo LPJ_EOSIM CarbonTracker Chamber_Combined FLUXNET TEM_Driver). If not provided, all models are queried."
     )
     parser.add_argument("--all_grid", action="store_true", help="Optional: output gridded data for FLUXNET and Chamber data.")
-    parser.add_argument("--output_path", type=str, default="", help="Output the queried results into a netcdf file with specified output_path.")
+    parser.add_argument("--output_path", type=str, default="", help="Optional: Output the queried results into a netcdf file with specified output_path (e.g. /content/drive/MyDrive/output.nc).")
     args = parser.parse_args()
 
     manager = ModelQueryManager()
