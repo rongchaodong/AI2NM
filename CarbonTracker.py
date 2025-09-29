@@ -20,7 +20,7 @@ class CarbonTracker_Model(CH4_Model):
 
             # Now rename the variables to our standard names
             rename_vars = {
-                'post_wetland': 'emission'
+                'post_wetland': 'post_wetland_emission'
             }
             ds = ds.rename_vars(rename_vars)
             ds = ds.transpose('latitude', 'longitude', 'year', 'month')
@@ -131,6 +131,11 @@ class CarbonTracker_Model(CH4_Model):
         tem_model = TEM_Model("CarbonTracker", "../bottom-up/TEM/TEM_ch4_wetland_soilsink_1950_2020.nc4")
         consumption_ds = tem_model.dataset
         consumption_ds = consumption_ds[['lat', 'lon', 'year', 'month', 'consumption']]
+        # rename to soil_consumption
+        rename_vars = {
+            'consumption': 'soil_consumption'
+        }
+        consumption_ds = consumption_ds.rename_vars(rename_vars)
         self.consumption_data = consumption_ds
 
 if __name__ == '__main__':
