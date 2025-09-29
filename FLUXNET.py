@@ -133,6 +133,9 @@ class FLUXNET_Model(CH4_Model):
         else:
             print("No data found for grid conversion")
             self.dataset = None
+        
+        dataset = self.dataset
+        return dataset
 
     
     def query_ori(self,
@@ -354,7 +357,7 @@ if __name__ == '__main__':
     # Test FLUXNET model
     fluxnet_model = FLUXNET_Model("FLUXNET", "../FLUXNET-CH4/")
     
-    if fluxnet_model.dataset is not None:
+    if fluxnet_model.processed_data is not None:
         result_daily = fluxnet_model.query(
             lat_range=(40.0, 50.0), 
             lon_range=(-10.0, 10.0), 
