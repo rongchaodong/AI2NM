@@ -38,7 +38,7 @@ class ModelQueryManager:
             },
             'CarbonTracker': {
                 'class': CarbonTracker_Model,
-                'path': '../top-down/CT-CT-CH4_v2025_posterior_emission_1x1_category_mgm2day.nc',
+                'path': '../top-down/CT-CH4_v2025_posterior_emission_1x1_category_mgm2day.nc',
                 'resolution': 0.5,
             },
             'Chamber_Combined': {
