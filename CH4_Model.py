@@ -346,6 +346,45 @@ class CH4_Model:
             return
 
 
+    def _get_wetland_fraction(self):
+        frac_path = "../wetland_fraction/WAD2M_0p5_2000_2020_monthly_test.nc"
+
+        if not self.path.exists():
+            print(f"WARNING: Wetland fraction file not found at {frac_path}")
+            return None
+        try:
+            frac_ds = xr.open_dataset(frac_path, engine="netcdf4", chunks='auto')
+            rename_vars = {
+                'wad2m': 'wetland_fraction',
+            }
+            frac_ds = frac_ds.rename_vars(rename_vars)
+            frac_ds = frac_ds.transpose('latitude', 'longitude', 'year', 'month')
+
+            new_lat = np.arange(-90 + TARGET_RESOLUTION, 90 + TARGET_RESOLUTION, TARGET_RESOLUTION)
+            new_lon = np.arange(-180, 180, TARGET_RESOLUTION)
+            
+            # Use reindex with 'nearest' method for block-filling instead of interpolation
+            frac_ds = frac_ds.reindex(
+                latitude=new_lat,
+                longitude=new_lon,
+                method='nearest',
+                tolerance=max((0.6, 0.5)) # Look for nearest point within a radius of the old resolution, frac resolution is 0.5, so use target resolution here
+            )
+            # print("Processed wetland fraction dataset:", frac_ds)
+            # exit()
+            return frac_ds
+        except Exception as e:
+            print(f"ERROR: Failed to load wetland fraction data from {frac_path}: {e}")
+
+    def _merge_with_wetland_fraction(self, ds, frac_ds):
+        try:
+            ds = ds.merge(frac_ds, join='left')
+            ds = ds.fillna(-9999)
+            return ds
+        except Exception as e:
+            print(f"ERROR: Failed to merge wetland fraction data: {e}")
+            return ds
+
     def __repr__(self):
         """Returns a string representation of the object."""
         if self.dataset is not None:

@@ -3,9 +3,15 @@ import xarray as xr
 from CH4_Model import CH4_Model
 
 class TEM_Model(CH4_Model):
+
+    def __init__(self, name, path, resolution = 0.5):
+        super().__init__(name, path, resolution)
+        self.wetland_fraction = self._get_wetland_fraction()
+        self.dataset = self._merge_with_wetland_fraction(self.dataset, self.wetland_fraction)
+
     def _load_data(self):
         try:
-            ds = xr.open_dataset(self.path, engine="netcdf4")
+            ds = xr.open_dataset(self.path, engine="netcdf4", chunks='auto')
             ds['year'] = ds['year'].astype(int)
             ds['month'] = ds['month'].astype(int)
             # Now rename the variables to our standard names
@@ -23,7 +29,8 @@ class TEM_Model(CH4_Model):
             print(f"ERROR: Failed to load TEM model from {self.path}: {e}")
 
 if __name__ == '__main__':
-    tem_model = TEM_Model("TEM", "../bottom-up/TEM/TEM_ch4_wetland_soilsink_1950_2020.nc4")
+    tem_model = TEM_Model("TEM", "../bottom-up/TEM/TEM_ch4_wetland_soilsink_1950_2020_mgm2day.nc4")
     # print(tem_model.dataset)
     # exit()
-    print(tem_model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5")))
+    df = tem_model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5"))
+    print(df.head(10))

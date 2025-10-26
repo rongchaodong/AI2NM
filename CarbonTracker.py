@@ -12,11 +12,13 @@ class CarbonTracker_Model(CH4_Model):
 
         super().__init__(name, path, resolution)
         self._get_consumption()
+        self.wetland_fraction = self._get_wetland_fraction()
+        self.dataset = self._merge_with_wetland_fraction(self.dataset, self.wetland_fraction)
 
 
     def _load_data(self):
         try:
-            ds = xr.open_dataset(self.path, engine="netcdf4")
+            ds = xr.open_dataset(self.path, engine="netcdf4", chunks='auto')
 
             # Now rename the variables to our standard names
             rename_vars = {
@@ -139,8 +141,9 @@ class CarbonTracker_Model(CH4_Model):
         self.consumption_data = consumption_ds
 
 if __name__ == '__main__':
-    model = CarbonTracker_Model("CarbonTracker", "../top-down/CT-CH4_v2025_posterior_emission_1x1_category.nc", (1.0, 1.0))
+    model = CarbonTracker_Model("CarbonTracker", "../top-down/CT-CH4_v2025_posterior_emission_1x1_category_mgm2day.nc", (1.0, 1.0))
     # print(model.dataset)
     # exit()
     # print("---" * 10)
-    print(model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5")))
+    df = model.query((-45.0, -43.0), (45.0, 47.0), ("2000-11", "2001-5"))
+    print(df.head(10))

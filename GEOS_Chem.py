@@ -16,7 +16,7 @@ class GEOS_Chem_Model(CH4_Model):
 
     def _load_data(self):
         try:
-            ds = xr.open_dataset(self.path, engine="netcdf4")
+            ds = xr.open_dataset(self.path, engine="netcdf4", chunks='auto')
             # print("orginal ds", ds)
             # exit()
 

@@ -23,7 +23,7 @@ class ModelQueryManager:
         return {
             'TEM': {
                 'class': TEM_Model,
-                'path': '../bottom-up/TEM/TEM_ch4_wetland_soilsink_1950_2020.nc4',
+                'path': '../bottom-up/TEM/TEM_ch4_wetland_soilsink_1950_2020_mgm2day.nc4',
                 'resolution': 0.5,
             },
             'MeMo': {
@@ -33,12 +33,12 @@ class ModelQueryManager:
             },
             'LPJ_EOSIM': {
                 'class': PLJ_EOSIM_Model,
-                'path': '../bottom-up/LPJ-EOSIM_ensemble_mch4e_1990-2024.nc',
+                'path': '../bottom-up/PLJ-EOSIM/',
                 'resolution': 0.5,
             },
             'CarbonTracker': {
                 'class': CarbonTracker_Model,
-                'path': '../top-down/CT-CH4_v2025_posterior_emission_1x1_category.nc',
+                'path': '../top-down/CT-CT-CH4_v2025_posterior_emission_1x1_category_mgm2day.nc',
                 'resolution': 0.5,
             },
             'Chamber_Combined': {
@@ -153,7 +153,7 @@ class ModelQueryManager:
                 
                 if result is not None and not result.empty:
                     results[model_name] = result
-                    print(result)
+                    print(result.head(10))
                 else:
                     results[model_name] = None
                     
